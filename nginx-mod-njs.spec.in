@@ -45,6 +45,7 @@ nginScript module for nginx.
 %setup -q -n nginx-%{_nginxver}
 %setup -T -D -b 1 -n %{_modname}-%{version}
 
+cd %{_builddir}/nginx-%{_nginxver}
 %if 0%{?openssl_pkgversion}
 sed \
   -e 's|\(ngx_feature_path=\)$|\1%{_includedir}/openssl%{openssl_pkgversion}|' \
