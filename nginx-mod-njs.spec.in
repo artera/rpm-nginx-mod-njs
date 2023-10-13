@@ -1,6 +1,6 @@
 Summary: nginScript module for nginx
 Name: nginx-mod-njs
-Version: 0.7.9
+Version: 0.8.1
 Release: 1%{?dist}
 Vendor: Artera
 URL: https://nginx.org/en/docs/njs_about.html
@@ -14,11 +14,12 @@ Source0: https://nginx.org/download/nginx-%{_nginxver}.tar.gz
 Source1: https://hg.nginx.org/njs/archive/%{version}.tar.gz#/%{_modname}-%{version}.tar.gz
 
 Requires: nginx = 1:%{_nginxver}
+Requires: openssl3-libs
 BuildRequires: nginx
 BuildRequires: libtool
 BuildRequires: autoconf
 BuildRequires: automake
-BuildRequires: openssl-devel
+BuildRequires: openssl3-devel
 BuildRequires: pcre-devel
 BuildRequires: zlib-devel
 BuildRequires: perl-devel
@@ -39,13 +40,34 @@ nginScript module for nginx.
 %setup -q -n nginx-%{_nginxver}
 %setup -T -D -b 1 -n %{_modname}-%{version}
 
-%build
 cd %{_builddir}/nginx-%{_nginxver}
-./configure --with-compat --with-stream --with-http_ssl_module --with-http_v2_module --add-dynamic-module=../njs-%{version}/nginx
+sed \
+  -e 's|\(ngx_feature_path=\)$|\1%{_includedir}/openssl3|' \
+  -e 's|\(ngx_feature_libs="\)|\1-L%{_libdir}/openssl3 |' \
+  -i auto/lib/openssl/conf
+
+%build
+cd %{_builddir}/njs-%{version}
+CFLAGS="$CFLAGS -Wno-dangling-pointer -Wno-maybe-uninitialized" ./configure
+make njs
+
+# next configure cleans the build directory
+mv build/njs %{_builddir}/
+
+cd %{_builddir}/nginx-%{_nginxver}
+./configure \
+    --with-compat \
+    --with-stream \
+    --with-http_ssl_module \
+    --with-openssl-opt=enable-ktls \
+    --with-http_v2_module \
+    --add-dynamic-module=../njs-%{version}/nginx
 make modules
 
 %install
 %{__rm} -rf %{buildroot}
+
+%{__install} -Dm755 %{_builddir}/njs %{buildroot}%{_bindir}/njs
 
 %{__install} -Dm755 %{nginx_build_dir}/objs/ngx_http_js_module.so \
     $RPM_BUILD_ROOT%{_libdir}/nginx/modules/ngx_http_js_module.so
@@ -57,4 +79,5 @@ make modules
 
 %files
 %defattr(-,root,root)
+%{_bindir}/njs
 %{_libdir}/nginx/modules/*.so
