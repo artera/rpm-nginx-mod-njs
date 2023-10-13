@@ -41,7 +41,7 @@ nginScript module for nginx.
 
 %build
 cd %{_builddir}/nginx-%{_nginxver}
-./configure --with-file-aio --with-ipv6 --with-stream %(nginx -V 2>&1 | grep -Po -- '--with-http[^ ]+' | xargs echo) --with-cc-opt='%{optflags}' --add-dynamic-module=../njs-%{version}/nginx
+./configure --with-compat --with-stream --with-http_ssl_module --with-http_v2_module --add-dynamic-module=../njs-%{version}/nginx
 make modules
 
 %install
