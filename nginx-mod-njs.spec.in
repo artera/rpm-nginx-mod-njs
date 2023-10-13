@@ -1,3 +1,8 @@
+# Build against OpenSSL 3 on EL8
+%if 0%{?rhel} == 8
+%global openssl_pkgversion 3
+%endif
+
 Summary: nginScript module for nginx
 Name: nginx-mod-njs
 Version: 0.8.1
@@ -14,12 +19,12 @@ Source0: https://nginx.org/download/nginx-%{_nginxver}.tar.gz
 Source1: https://hg.nginx.org/njs/archive/%{version}.tar.gz#/%{_modname}-%{version}.tar.gz
 
 Requires: nginx = 1:%{_nginxver}
-Requires: openssl3-libs
+Requires: openssl%{?openssl_pkgversion}-libs
 BuildRequires: nginx
 BuildRequires: libtool
 BuildRequires: autoconf
 BuildRequires: automake
-BuildRequires: openssl3-devel
+BuildRequires: openssl%{?openssl_pkgversion}-devel
 BuildRequires: pcre-devel
 BuildRequires: zlib-devel
 BuildRequires: perl-devel
@@ -40,11 +45,12 @@ nginScript module for nginx.
 %setup -q -n nginx-%{_nginxver}
 %setup -T -D -b 1 -n %{_modname}-%{version}
 
-cd %{_builddir}/nginx-%{_nginxver}
+%if 0%{?openssl_pkgversion}
 sed \
-  -e 's|\(ngx_feature_path=\)$|\1%{_includedir}/openssl3|' \
-  -e 's|\(ngx_feature_libs="\)|\1-L%{_libdir}/openssl3 |' \
+  -e 's|\(ngx_feature_path=\)$|\1%{_includedir}/openssl%{openssl_pkgversion}|' \
+  -e 's|\(ngx_feature_libs="\)|\1-L%{_libdir}/openssl%{openssl_pkgversion} |' \
   -i auto/lib/openssl/conf
+%endif
 
 %build
 cd %{_builddir}/njs-%{version}
@@ -61,6 +67,7 @@ cd %{_builddir}/nginx-%{_nginxver}
     --with-http_ssl_module \
     --with-openssl-opt=enable-ktls \
     --with-http_v2_module \
+    --with-cc-opt="%{optflags} $(pcre2-config --cflags)" \
     --add-dynamic-module=../njs-%{version}/nginx
 make modules
 
